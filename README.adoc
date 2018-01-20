@@ -3,7 +3,7 @@ Utility to easily add a GraphQL endpoint to a Ktor project
 
 == Usage
 
-.Minimal working example
+To set up an endpoint at the default route (`your.domain/graphql`) with just a query resolver and without a custom GraphQL context:
 [source,kotlin]
 ----
 fun Application.main() {
@@ -14,4 +14,26 @@ fun Application.main() {
         )
     }
 }
+----
+
+Setting up an endpoint at `your.domain/subroute/my-custom-endpoint` with a custom GraphQL context and multiple resolvers:
+[source,kotlin]
+----
+fun Application.main() {
+    install(Routing) {
+        route("subroute") {
+            graphQL(
+                "my-custom-endpoint",
+                "path/to/schema.graphqls",
+                ::MyContext,
+                Query(),
+                Mutation(),
+                AnotherResolver()
+            )
+            graphiQL()
+        }
+    }
+}
+
+data class MyContext(val call: ApplicationCall)
 ----
