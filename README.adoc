@@ -1,2 +1,17 @@
 = ktor-graphql
 Utility to easily add a GraphQL endpoint to a Ktor project
+
+== Usage
+
+.Minimal working example
+[source,kotlin]
+----
+fun Application.main() {
+    install(Routing) {
+        graphQL(
+            "path/to/schema.graphqls",
+            MyQueryResolver()
+        )
+    }
+}
+----
