@@ -14,6 +14,7 @@ group 'com.rrpictureproductions'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'kotlin'
 
 sourceCompatibility = 1.8
@@ -27,9 +28,19 @@ repositories {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
-    implementation "io.ktor:ktor-server-core:$ktor_version"
+    api "io.ktor:ktor-server-core:$ktor_version"
+    api "com.graphql-java:graphql-java:3.0.0"
+    api "com.graphql-java:graphql-java-tools:4.3.0"
+
+    implementation("com.google.code.gson:gson:2.8.2")
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
 }
 
 compileKotlin {
