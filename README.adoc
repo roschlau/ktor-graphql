@@ -1,3 +1,2 @@
-ktor-graphql
-============
+= ktor-graphql
 Utility to easily add a GraphQL endpoint to a Ktor project
