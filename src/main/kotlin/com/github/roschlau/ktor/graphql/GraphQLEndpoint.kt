@@ -1,9 +1,9 @@
 package com.github.roschlau.ktor.graphql
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonSyntaxException
-import com.google.gson.reflect.TypeToken
+import com.fasterxml.jackson.core.JsonParseException
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.JsonMappingException
+import com.fasterxml.jackson.databind.ObjectMapper
 import graphql.ExecutionInput
 import graphql.ExecutionResult
 import graphql.GraphQL
@@ -11,8 +11,9 @@ import graphql.schema.GraphQLSchema
 import io.ktor.application.ApplicationCall
 import io.ktor.request.contentType
 import io.ktor.request.receiveText
+import java.io.IOException
 
-private val gson = GsonBuilder().create()
+private val jackson = ObjectMapper()
 
 class GraphQLEndpoint<Context>(
     private val schema: GraphQLSchema,
@@ -28,7 +29,7 @@ class GraphQLEndpoint<Context>(
     suspend fun processCall(call: ApplicationCall): String {
         val request = try {
             GraphQLRequest.from(call)
-        } catch (e: JsonSyntaxException) {
+        } catch (e: JsonProcessingException) {
             throw InvalidRequestFormatException("GraphQL request could not be parsed.", e)
         }
         return newGraphQL()
@@ -40,7 +41,7 @@ class GraphQLEndpoint<Context>(
         return ExecutionInput(query, operationName, context, "Root", variables)
     }
 
-    private fun ExecutionResult.toSpecificationJson() = gson.toJson(this.toSpecification())
+    private fun ExecutionResult.toSpecificationJson() = jackson.writeValueAsString(this.toSpecification())
 
     private fun newGraphQL() = GraphQL.newGraphQL(schema).build()
 
@@ -60,13 +61,13 @@ private data class GraphQLRequest(
          * Extracts a GraphQLRequest from the [call] according to the
          * [GraphQL Specification](http://graphql.org/learn/serving-over-http/#http-methods-headers-and-body).
          */
-        @Throws(JsonSyntaxException::class)
+        @Throws(IOException::class, JsonParseException::class, JsonMappingException::class)
         suspend fun from(call: ApplicationCall): GraphQLRequest {
             val contentType = call.request.contentType().contentSubtype
             return when {
                 call.parameters["query"] != null -> requestFromParameters(call)
                 contentType == "graphql" -> GraphQLRequest(call.receiveText())
-                else -> gson.fromJson(call.receiveText())
+                else -> jackson.fromJson(call.receiveText())
             }
         }
 
@@ -74,20 +75,19 @@ private data class GraphQLRequest(
          * Builds a [GraphQLRequest] instance from the `query`, `operationName` and `variables` parameters of the [call]
          * object. These can either be GET- or POST-parameters.
          */
-        @Throws(JsonSyntaxException::class)
+        @Throws(IOException::class, JsonParseException::class, JsonMappingException::class)
         private fun requestFromParameters(call: ApplicationCall): GraphQLRequest {
             val query = call.parameters["query"]!!
             val operationName = call.parameters["operationName"]
             val variables = call.parameters["variables"]?.let { paramValue ->
-                gson.fromJson<Map<String, Any>>(paramValue)
+                jackson.fromJson<Map<String, Any>>(paramValue)
             }
             return GraphQLRequest(query, operationName, variables)
         }
     }
 }
 
-@Throws(JsonSyntaxException::class)
-private inline fun <reified T> Gson.fromJson(json: String): T {
-    val typeToken = object : TypeToken<T>() {}
-    return fromJson<T>(json, typeToken.type)
+@Throws(IOException::class, JsonParseException::class, JsonMappingException::class)
+private inline fun <reified T> ObjectMapper.fromJson(json: String): T {
+    return this.readValue(json, T::class.java)
 }
