@@ -9,8 +9,8 @@ import graphql.ExecutionResult
 import graphql.GraphQL
 import graphql.schema.GraphQLSchema
 import io.ktor.application.ApplicationCall
-import io.ktor.content.readText
 import io.ktor.request.contentType
+import io.ktor.request.receiveText
 
 private val gson = GsonBuilder().create()
 
@@ -65,8 +65,8 @@ private data class GraphQLRequest(
             val contentType = call.request.contentType().contentSubtype
             return when {
                 call.parameters["query"] != null -> requestFromParameters(call)
-                contentType == "graphql" -> GraphQLRequest(call.requestBody())
-                else -> gson.fromJson(call.requestBody())
+                contentType == "graphql" -> GraphQLRequest(call.receiveText())
+                else -> gson.fromJson(call.receiveText())
             }
         }
 
@@ -83,8 +83,6 @@ private data class GraphQLRequest(
             }
             return GraphQLRequest(query, operationName, variables)
         }
-
-        private suspend fun ApplicationCall.requestBody() = request.receiveContent().readText()
     }
 }
 
